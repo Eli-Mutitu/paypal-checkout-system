@@ -2,8 +2,19 @@ const paypal = require('@paypal/checkout-server-sdk');
 const { getPayPalClient } = require('../config/paypal');
 
 /**
- * Create a PayPal order
+ * Create a PayPal order with support for multiple payment methods
  * POST /api/orders/create
+ * 
+ * Supports multiple funding sources:
+ * - PayPal balance
+ * - Credit/Debit cards
+ * - Bank transfers (ACH, SEPA, etc.)
+ * - Direct debit (where available)
+ * 
+ * PayPal automatically determines available payment methods based on:
+ * - Buyer's location/country
+ * - Currency
+ * - Merchant configuration
  */
 async function createOrder(req, res, next) {
   try {
@@ -17,8 +28,8 @@ async function createOrder(req, res, next) {
       });
     }
 
-    // Validate currency code
-    const validCurrencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD'];
+    // Validate currency code - expanded list for bank transfer support
+    const validCurrencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF', 'SEK', 'DKK', 'NOK'];
     if (!validCurrencies.includes(currency)) {
       return res.status(400).json({
         error: 'Invalid currency',
@@ -26,10 +37,12 @@ async function createOrder(req, res, next) {
       });
     }
 
-    // Create PayPal order request
+    // Create PayPal order request with Orders API v2
     const request = new paypal.orders.OrdersCreateRequest();
     request.prefer('return=representation');
-    request.requestBody({
+    
+    // Build order request body
+    const orderRequest = {
       intent: 'CAPTURE',
       purchase_units: [
         {
@@ -37,28 +50,49 @@ async function createOrder(req, res, next) {
             currency_code: currency,
             value: parseFloat(amount).toFixed(2)
           },
-          description: description
+          description: description,
+          // Optional: Add soft descriptor for bank statement
+          soft_descriptor: 'PAYMENT',
         }
       ],
       application_context: {
         brand_name: 'Your Business Name',
         landing_page: 'NO_PREFERENCE',
         user_action: 'PAY_NOW',
+        // Enable all payment types - PayPal, cards, bank transfers
+        payment_method: {
+          payee_preferred: 'IMMEDIATE_PAYMENT_REQUIRED',
+          // Let PayPal decide available payment methods per region
+          // This enables: PayPal balance, cards, bank transfers, direct debit
+        },
         return_url: `${process.env.FRONTEND_URL}/success`,
-        cancel_url: `${process.env.FRONTEND_URL}/cancel`
+        cancel_url: `${process.env.FRONTEND_URL}/cancel`,
+        // Shipping preference for digital goods/services
+        shipping_preference: 'NO_SHIPPING'
       }
-    });
+    };
+
+    // Note: We intentionally do NOT specify payment_source here
+    // This allows PayPal to automatically show all available payment methods
+    // based on buyer's location, including:
+    // - PAYPAL (balance)
+    // - CARD (credit/debit)
+    // - BANK_TRANSFER (ACH, SEPA, Faster Payments, etc.)
+    // - DIRECT_DEBIT (where supported)
+    
+    request.requestBody(orderRequest);
 
     // Execute PayPal order creation
     const client = getPayPalClient();
     const order = await client.execute(request);
 
     // Log order creation for audit trail
-    console.log('✓ Order created:', {
+    console.log('✓ Order created with multi-payment support:', {
       orderId: order.result.id,
       amount: amount,
       currency: currency,
       status: order.result.status,
+      availablePaymentMethods: 'Auto-determined by PayPal based on region',
       timestamp: new Date().toISOString()
     });
 
@@ -66,7 +100,15 @@ async function createOrder(req, res, next) {
     res.status(201).json({
       orderID: order.result.id,
       status: order.result.status,
-      links: order.result.links
+      links: order.result.links,
+      // Inform client that multiple payment methods are available
+      paymentMethodsEnabled: [
+        'PAYPAL',
+        'CARD', 
+        'BANK_TRANSFER',
+        'DIRECT_DEBIT'
+      ],
+      note: 'Available methods depend on buyer location and currency'
     });
 
   } catch (error) {

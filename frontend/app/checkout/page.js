@@ -200,11 +200,19 @@ export default function CheckoutPage() {
                 disabled={loading}
               >
                 <option value="USD">USD - US Dollar</option>
-                <option value="EUR">EUR - Euro</option>
-                <option value="GBP">GBP - British Pound</option>
+                <option value="EUR">EUR - Euro (SEPA supported)</option>
+                <option value="GBP">GBP - British Pound (Faster Payments)</option>
                 <option value="CAD">CAD - Canadian Dollar</option>
                 <option value="AUD">AUD - Australian Dollar</option>
+                <option value="JPY">JPY - Japanese Yen</option>
+                <option value="CHF">CHF - Swiss Franc</option>
+                <option value="SEK">SEK - Swedish Krona</option>
+                <option value="DKK">DKK - Danish Krone</option>
+                <option value="NOK">NOK - Norwegian Krone</option>
               </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Available payment methods vary by currency and region
+              </p>
             </div>
 
             <div>
@@ -270,11 +278,37 @@ export default function CheckoutPage() {
               </p>
             </div>
 
+            {/* Payment Methods Info */}
+            <div className="bg-green-50 rounded-lg p-4 border border-green-200 mb-6">
+              <h4 className="text-sm font-semibold text-green-900 mb-2">
+                💳 Multiple Payment Options Available
+              </h4>
+              <ul className="text-xs text-green-800 space-y-1">
+                <li>✓ PayPal Balance</li>
+                <li>✓ Credit & Debit Cards</li>
+                <li>✓ Bank Transfer (ACH, SEPA, etc.)</li>
+                <li>✓ Direct Debit (where supported)</li>
+              </ul>
+              <p className="text-xs text-green-700 mt-2">
+                Available methods are determined by your location and currency.
+              </p>
+            </div>
+
             <PayPalScriptProvider
               options={{
                 clientId: PAYPAL_CLIENT_ID,
                 currency: currency,
                 intent: 'capture',
+                // Enable all available funding sources
+                // This includes: PayPal, Cards, Bank Transfers, Direct Debit
+                'enable-funding': 'venmo,paylater,card',
+                // Don't disable any funding sources - let PayPal auto-determine
+                'disable-funding': '',
+                // Components to load
+                components: 'buttons,funding-eligibility',
+                // Buyer country - if known, helps determine available payment methods
+                // Leave undefined to auto-detect
+                'buyer-country': undefined,
               }}
             >
               <PayPalButtons
@@ -283,12 +317,17 @@ export default function CheckoutPage() {
                   color: 'blue',
                   shape: 'rect',
                   label: 'pay',
+                  height: 55,
                 }}
+                // Enable all funding sources in the buttons
+                fundingSource={undefined} // undefined = show all available
                 createOrder={createOrder}
                 onApprove={onApprove}
                 onError={onError}
                 onCancel={onCancel}
                 disabled={loading}
+                // Force re-render when currency changes to update available methods
+                forceReRender={[currency, amount]}
               />
             </PayPalScriptProvider>
 

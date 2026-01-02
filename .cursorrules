@@ -1,0 +1,120 @@
+# PayPal Checkout System - Cursor Rules
+
+## Project Context
+This is a production-ready PayPal checkout system with Next.js 14 frontend and Express backend.
+
+## Code Standards
+
+### Security First
+- Never hardcode credentials
+- Always validate input on server side
+- Use environment variables for configuration
+- Implement proper error handling
+- Don't leak sensitive information in errors
+
+### Code Style
+- Use clear, descriptive variable names
+- Add comments for complex logic
+- Follow existing patterns in the codebase
+- Keep functions focused and single-purpose
+- Use async/await over promises
+
+### Backend (Express)
+- All API endpoints should validate input
+- Use proper HTTP status codes
+- Log important events for audit trail
+- Return consistent JSON response format
+- Handle PayPal SDK errors gracefully
+
+### Frontend (Next.js)
+- Use 'use client' directive for client components
+- Keep sensitive operations on backend
+- Validate user input before API calls
+- Show loading states during async operations
+- Provide clear error messages to users
+
+## File Organization
+
+### Backend Structure
+```
+backend/
+├── src/
+│   ├── config/      # Configuration (PayPal, etc.)
+│   ├── controllers/ # Business logic
+│   ├── routes/      # API route definitions
+│   ├── middleware/  # Custom middleware
+│   └── utils/       # Helper functions
+└── server.js        # Entry point
+```
+
+### Frontend Structure
+```
+frontend/
+├── app/             # Next.js App Router pages
+├── components/      # Reusable React components
+└── lib/             # Utilities and helpers
+```
+
+## Common Tasks
+
+### Adding a New API Endpoint
+1. Create controller function in `backend/src/controllers/`
+2. Add route in `backend/src/routes/`
+3. Add input validation
+4. Add error handling
+5. Test with Postman or similar
+
+### Adding a New Page
+1. Create page in `frontend/app/[page-name]/page.js`
+2. Add 'use client' if using hooks
+3. Use existing styling patterns
+4. Add loading states
+5. Add error handling
+
+### Modifying PayPal Integration
+- Always test in sandbox mode first
+- Check PayPal documentation for changes
+- Update both frontend and backend if needed
+- Test complete flow after changes
+
+## Testing Checklist
+
+Before committing:
+- [ ] Test in sandbox mode
+- [ ] Check for console errors
+- [ ] Verify error handling
+- [ ] Test with different amounts
+- [ ] Test payment flow end-to-end
+- [ ] Check responsive design
+- [ ] Verify environment variables work
+
+## Deployment Checklist
+
+Before deploying:
+- [ ] Update environment variables
+- [ ] Switch to production PayPal credentials
+- [ ] Enable HTTPS
+- [ ] Configure CORS for production
+- [ ] Set up webhooks with production URL
+- [ ] Test complete flow in production
+- [ ] Monitor logs for errors
+
+## Security Guidelines
+
+- Never commit `.env` or `.env.local` files
+- Keep Client Secret on backend only
+- Validate all user input
+- Use HTTPS in production
+- Implement rate limiting
+- Verify webhook signatures
+- Log security events
+- Rotate credentials regularly
+
+## Documentation
+
+- Update README.md for major changes
+- Add comments for complex logic
+- Document API endpoint changes
+- Update environment variable documentation
+- Keep security documentation current
+
